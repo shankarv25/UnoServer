@@ -40,10 +40,7 @@ public class PlacesController {
 		
 		System.out.println("Places index");
 		response.addHeader("Access-Control-Allow-Origin", "*");
-		Query searchQuery = new Query();
-		if(page!=null && size!=null) {
-			searchQuery.with(new PageRequest(page, size));
-		}
+		Query searchQuery = constructQuery(search, page, size);
 		List<Place> places = mongoOperations.find(searchQuery, Place.class, "places");
 		return places;
 	}
