@@ -35,12 +35,13 @@ public class PlacesController {
 	@ResponseBody
 	public List<Place> index(HttpServletRequest request, HttpServletResponse response,
 							 @RequestParam(value="search", required=false) String search,
+							 @RequestParam(value="fields", required=false) List<String> fields,
 							 @RequestParam(value="page", required=false) Integer page,
 							 @RequestParam(value="size", required=false) Integer size) {
 		
 		System.out.println("Places index");
 		response.addHeader("Access-Control-Allow-Origin", "*");
-		Query searchQuery = constructQuery(search, page, size);
+		Query searchQuery = constructQuery(search, fields, page, size);
 		List<Place> places = mongoOperations.find(searchQuery, Place.class, "places");
 		return places;
 	}
@@ -48,22 +49,34 @@ public class PlacesController {
 	@RequestMapping(value = "/{placeId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
 	@ResponseBody
 	public Place getPlace(HttpServletRequest request, HttpServletResponse response,
-						  @PathVariable long placeId) {
+						  @PathVariable long placeId,
+						  @RequestParam(value="fields", required=false) List<String> fields) {
 		System.out.println("Place " + placeId);
 		response.addHeader("Access-Control-Allow-Origin", "*");
-		Query query = constructQuery(placeId);
+		Query query = constructQuery(placeId, fields);
 		Place place = mongoOperations.findOne(query, Place.class, "places");
 		return place;
 	}
 	
-	private Query constructQuery(long placeId) {
-		return new Query(Criteria.where("placeId").is(placeId));
+	private Query constructQuery(long placeId, List<String> fields) {
+		Query query = new Query(Criteria.where("placeId").is(placeId));
+		if(fields!=null) {
+			for(String field : fields) {
+				query.fields().include(field);
+			}
+		}
+		return query;
 	}
 	
-	private Query constructQuery(String search, Integer page, Integer size){
+	private Query constructQuery(String search, List<String> fields, Integer page, Integer size) {
 		Query query = new Query();
 		if(search!=null) {
-			query.addCriteria(Criteria.where("name").regex(search));
+			query.addCriteria(Criteria.where("name").regex(search, "i"));
+		}
+		if(fields!=null) {
+			for(String field : fields) {
+				query.fields().include(field);
+			}
 		}
 		if(page!=null && size!=null) {
 			query.with(new PageRequest(page,size));
